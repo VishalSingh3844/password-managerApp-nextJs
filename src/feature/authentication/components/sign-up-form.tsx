@@ -13,6 +13,9 @@ import * as z from "zod";
 import { SubmitHandler, useForm } from "react-hook-form";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import axios,{AxiosError} from "axios";
+import { useMutation } from "@tanstack/react-query";
+import toast from "react-hot-toast";
 
 const signUpSchema = z.object({
   name: z.string().trim().min(1),
@@ -33,12 +36,25 @@ export default function SignUpForm({
   } = useForm<TSignUpSchema>({
     resolver: zodResolver(signUpSchema),
   });
+  const { mutate, isPending } = useMutation({
+    mutationFn: async (data: TSignUpSchema) => {
+      const res = await axios.post("/api/sign-up", data);
+      return res.data;
+    },
+    onSuccess: (data) => {
+      console.log(data);
+      toast.success("Account creted")
+    },
+    onError(error:AxiosError<any>) {
+      toast.error(error?.response?.data?.error)
+    },
+  });
 
-  const onSubmit:SubmitHandler<TSignUpSchema> = (data) => {
-    console.log(data);
+  const onSubmit: SubmitHandler<TSignUpSchema> = async (data) => {
+    mutate(data);
   };
 
-  console.log(errors)
+  console.log(errors);
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
@@ -56,7 +72,6 @@ export default function SignUpForm({
                 <Label htmlFor="email">Name</Label>
                 <Input
                   id="name"
-                  
                   placeholder="Enter name"
                   hasError={Boolean(errors?.name)}
                   error={errors?.name?.message}
@@ -88,7 +103,7 @@ export default function SignUpForm({
               </div>
               <div className="flex flex-col gap-3">
                 <Button type="submit" className="w-full">
-                  Sign up
+                  {isPending ? "Loading" : "Sign up"}
                 </Button>
                 <Button variant="outline" className="w-full">
                   Sign up with Google
